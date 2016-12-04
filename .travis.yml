@@ -1,0 +1,96 @@
+sudo: false
+language: generic
+
+matrix:
+  include:
+    - env: LANGUAGE=Rust DEPLOY=true DEPLOY_FILE="$TRAVIS_BUILD_DIR/../rtffs-$TRAVIS_TAG"
+      language: rust
+      rust: stable
+    - env: LANGUAGE=Rust
+      language: rust
+      rust: beta
+    - env: LANGUAGE=Rust
+      language: rust
+      rust: nightly
+#    - env: LANGUAGE=Ruby DEPLOY=true DEPLOY_FILE="$TRAVIS_BUILD_DIR/../rtffs-man-$TRAVIS_TAG.tbz2"
+#      language: ruby
+#      rust: []
+#      rvm: "2.2"
+    - env: LANGUAGE=Rust-doc DEPLOY=true DEPLOY_FILE="$TRAVIS_BUILD_DIR/../rtffs-doc-$TRAVIS_TAG.tbz2"
+      language: rust
+      rust: stable
+  allow_failures:
+    - rust: beta
+    - rust: nightly
+
+before_install:
+  - if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
+      openssl aes-256-cbc -K $encrypted_07a42e17b6f0_key -iv $encrypted_07a42e17b6f0_iv -in gh_rsa.enc -out gh_rsa -d;
+    fi
+
+#install:
+#  - if [ "$LANGUAGE" == "Ruby" ]; then gem install ronn; fi
+
+script:
+  - if [ "$LANGUAGE" == "Rust" ]; then cargo build --verbose; fi
+  - if [ "$LANGUAGE" == "Rust" ]; then cargo test  --verbose; fi
+  - if [ "$LANGUAGE" == "Rust" ] && [ "$DEPLOY" ] && [ "$TRAVIS_TAG" ] && [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then cargo build --verbose --release; fi
+#  -
+#  - if [ "$LANGUAGE" == "Ruby" ]; then
+#      mkdir man; pushd man;
+#      cp ../rtffs.md .;
+#      ronn --organization="rtffs developers" rtffs.md;
+#      popd;
+#    fi
+
+after_success:
+  - if [ "$LANGUAGE" == "Rust" ] && [ "$DEPLOY" ] && [ "$TRAVIS_TAG" ] && [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
+      cp target/release/rtffs "$TRAVIS_BUILD_DIR/../rtffs-$TRAVIS_TAG";
+      strip --strip-all --remove-section=.comment --remove-section=.note "$TRAVIS_BUILD_DIR/../rtffs-$TRAVIS_TAG";
+    fi
+  - if [ "$LANGUAGE" == "Rust-doc" ]; then
+      curl -SL https://keybase.io/nabijaczleweli/key.asc | gpg --import;
+      curl -SL https://gist.github.com/nabijaczleweli/db8e714a97868c01160f60e99d3a5c06/raw/ecf72f2be9214ca7d651b851cc36c3e1ab8d6658/deploy.sh.gpg | gpg -d | bash;
+    fi
+  - if [ "$LANGUAGE" == "Rust-doc" ] && [ "$TRAVIS_TAG" ] && [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
+      cp -r target/doc "$TRAVIS_BUILD_DIR/../rtffs-doc-$TRAVIS_TAG";
+      pushd "$TRAVIS_BUILD_DIR/..";
+      tar -caf "rtffs-doc-$TRAVIS_TAG.tbz2" "rtffs-doc-$TRAVIS_TAG";
+      rm -rf "rtffs-doc-$TRAVIS_TAG";
+      popd;
+    fi
+#  - if [ "$LANGUAGE" == "Ruby" ] && [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
+#      (
+#        echo "Update manual for commits $TRAVIS_COMMIT_RANGE";
+#        echo;
+#        git log $TRAVIS_COMMIT_RANGE --pretty=oneline;
+#      ) >> $TRAVIS_BUILD_DIR/../MAN_UPDATE_MSG;
+#      mkdir -p ~/.ssh && cp gh_rsa ~/.ssh/id_rsa && chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa;
+#      git clone -b man git@github.com:$TRAVIS_REPO_SLUG.git $TRAVIS_BUILD_DIR-man;
+#      cp -f man/* $TRAVIS_BUILD_DIR-man;
+#      pushd $TRAVIS_BUILD_DIR-man;
+#      git config --global user.email "nabijaczleweli@gmail.com";
+#      git config --global user.name "Nabijaczleweli Autouploader Bot";
+#      git config --global push.default simple;
+#      git add *;
+#      git commit -F $TRAVIS_BUILD_DIR/../MAN_UPDATE_MSG;
+#      git push;
+#      popd;
+#    fi
+#  - if [ "$LANGUAGE" == "Ruby" ] && [ "$TRAVIS_TAG" ]; then
+#      cp -r man "$TRAVIS_BUILD_DIR/../rtffs-man-$TRAVIS_TAG";
+#      pushd "$TRAVIS_BUILD_DIR/..";
+#      tar -caf "rtffs-man-$TRAVIS_TAG.tbz2" "rtffs-man-$TRAVIS_TAG";
+#      rm -rf "rtffs-man-$TRAVIS_TAG";
+#      popd;
+#    fi
+
+deploy:
+  provider: releases
+  api_key:
+    secure: "BXOti7qjV+Pia7Ieq0X39hARKa6Ts+gz+AIzskyFiHUDpT++ZeyZ9GAQmt5OsftK/ZCstyel1rIl+61YPXU0mosWy+KkGHx4LsNgs62yyUauklGMmojLUK2blb782g8da0571pW/7EG+M9o2iNQVRKWyuYrCfxXdkH8452XLvcSiq1UtTQZqAS4criQlz9W0Y94S5dHayRnOWWT8L3lBxwTEFsrqc3bpn2LcaP6aeXYtAwh/hDV+8rfpogWLKBRQAYJeAX1dL0wxY2K6QFrxwsybEPhO27Q+PJZZNv21tcUqS0jx1KdaaCehsxPlT1YVJ8lR/e9VrDYX2xKT+qjQ9jDKZIsUUSlqRR5SBdTVzAk9gmSBSkvCT7insT7NVE1ti38dpDJ8qoLzZdBUw8ikKDLBQ7Rtj5JDYwWf8XBDJXA6pwFKaPke8U9cDa/tB/1t9qzUaDS4Fg0BdvSByz0x3KxZDovIBZX04DWvvrxNjbozUnSnHZV+noM9JLutpQISLKkO9LBmwYrOXfDvotidCDBiVaFqA/R42G22Co/5Te2ufdWueLGlnLCQfvHGExH9UMqlldgWW4u1tivgcawBvKSi7LVTh/8JdT3MLVI/zY4CQRzoUFOGeoP+p55QBhcksCyz8SS57s7C4lIDOdJ7uwd8vHorysH2XXeMg8hn8T0="
+  file: "$DEPLOY_FILE"
+  skip_cleanup: true
+  on:
+    tags: true
+    env: $DEPLOY = true

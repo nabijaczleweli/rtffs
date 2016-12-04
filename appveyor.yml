@@ -1,0 +1,50 @@
+version: 0.1.0-{build}
+
+branches:
+  except:
+    - doc
+
+skip_tags: false
+
+platform: x64
+configuration: Release
+
+clone_folder: C:\rtffs
+
+install:
+  - curl -L https://static.rust-lang.org/dist/rust-1.11.0-x86_64-pc-windows-gnu.msi -oC:\rust-1.11.0-x86_64-pc-windows-gnu.msi
+  - start /w msiexec /qn /quiet /passive /a C:\rust-1.11.0-x86_64-pc-windows-gnu.msi TARGETDIR="C:\Program Files"
+  -
+  - set PATH=C:\msys64\mingw64\bin;C:\msys64\usr\bin;%PATH%;C:\Program Files\Rust\bin
+  - bash -lc "pacman --needed --noconfirm -Sy pacman-mirrors"
+  - bash -lc "pacman --noconfirm -Sy"
+  - bash -lc "pacman --noconfirm -S mingw-w64-x86_64-toolchain"
+
+build: off
+build_script:
+  - git submodule update --init --recursive
+  - cargo build --verbose --release
+  - cp target\release\rtffs.exe rtffs-v0.1.0.exe
+  - strip --strip-all --remove-section=.comment --remove-section=.note rtffs-v0.1.0.exe
+
+test: off
+test_script:
+  - cargo test --verbose --release
+  - target\release\rtffs -cr --ignore target --ignore .git && cat rtffs.hash
+
+artifacts:
+  - path: rtffs-v0.1.0.exe
+
+deploy:
+  provider: GitHub
+  artifact: rtffs-v0.1.0.exe
+  auth_token:
+    secure: crJEVt3Ts+pRaepzcjo/chtvju4JYH8Ss2nmb4EiVCMYk+z5jcrE4ixzakNvkxiB
+  on:
+    appveyor_repo_tag: true
+
+notifications:
+  - provider: Email
+    to:
+      - nabijaczleweli@gmail.com
+    on_build_status_changed: true

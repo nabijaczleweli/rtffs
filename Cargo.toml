@@ -1,0 +1,22 @@
+[package]
+name = "rtffs"
+description = "Flat filesystem for text files"
+documentation = "https://cdn.rawgit.com/nabijaczleweli/rtffs/doc/rtffs/index.html"
+repository = "https://github.com/nabijaczleweli/rtffs"
+readme = "README.md"
+keywords = ["rtffs", "filesystem", "flat", "text"]
+license = "MIT"
+# Remember to also update in appveyor.yml
+version = "0.1.0"
+# Remember to also update in rtffs.md
+authors = ["nabijaczleweli <nabijaczleweli@gmail.com>"]
+exclude = ["*.enc"]
+
+
+[dependencies]
+
+
+[[bin]]
+name = "rtffs"
+test = false
+doc = false
