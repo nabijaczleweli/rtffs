@@ -1,2 +1,2 @@
 # rtffs docs
-Viewable as rendered HTML [here](https://cdn.rawgit.com/nabijaczleweli/rtffs/doc/rtffs/index.html)
+Viewable as rendered HTML [here](https://rawcdn.githack.com/nabijaczleweli/rtffs/doc/rtffs/index.html)
